@@ -2,6 +2,8 @@
 
 import { BluetoothSensorService } from '../components/services/BluetoothSensorService';
 import { RecordingState, SensorReading } from '../Models/SensorData';
+// import { SensorData } from '../Models/SensorData'; // <-- Import SensorReading model 
+                                                      // and POTENTIALLY MOVE DECODING FUNCTIONS HERE
 
 // Define the shape of the data the View will consume (View State)
 interface ScanViewState {

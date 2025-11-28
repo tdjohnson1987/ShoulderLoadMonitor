@@ -96,3 +96,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
 });
+
+
+// npx expo run:ios --device 

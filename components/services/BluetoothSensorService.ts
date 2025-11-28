@@ -14,30 +14,57 @@ const TARGET_NAME_PREFIX = "BERG1";
 function decodeAccelData(base64Data: string): Pick<SensorReading, 'accelerometerX' | 'accelerometerY' | 'accelerometerZ'> | null {
   if (!base64Data) return null;
   const buffer = Buffer.from(base64Data, 'base64');
-  if (buffer.length < 12) { 
-      console.warn("Received short accelerometer data.");
-      return null;
+  
+  console.log(`Accel buffer length: ${buffer.length}, hex: ${buffer.toString('hex')}`);
+  
+  if (buffer.length < 6) { 
+    console.warn(`Received too short accelerometer data: ${buffer.length} bytes (expected at least 6)`);
+    return null;
   }
+  
+  // Parse as 3 signed int16 (little-endian)
+  const accelX = buffer.readInt16LE(0);
+  const accelY = buffer.readInt16LE(2);
+  const accelZ = buffer.readInt16LE(4);
+  
+  console.log(`Parsed Accel - X: ${accelX}, Y: ${accelY}, Z: ${accelZ}`);
+  
   return {
-    accelerometerX: buffer.readFloatLE(0),
-    accelerometerY: buffer.readFloatLE(4),
-    accelerometerZ: buffer.readFloatLE(8),
+    accelerometerX: accelX,
+    accelerometerY: accelY,
+    accelerometerZ: accelZ,
   };
 }
+
 
 function decodeGyroData(base64Data: string): Pick<SensorReading, 'gyroscopeX' | 'gyroscopeY' | 'gyroscopeZ'> | null {
   if (!base64Data) return null;
   const buffer = Buffer.from(base64Data, 'base64');
-  if (buffer.length < 12) { 
-      console.warn("Received short gyroscope data.");
-      return null;
+  
+  console.log(`Gyro buffer length: ${buffer.length}, hex: ${buffer.toString('hex')}`);
+  
+  // Device sends 9 bytes, we expect 6 bytes minimum (3 × int16)
+  if (buffer.length < 6) { 
+    console.warn(`Received too short gyroscope data: ${buffer.length} bytes (expected at least 6)`);
+    return null;
   }
+  
+  // Parse as 3 signed int16 (little-endian)
+  // Bytes 0-1: X, Bytes 2-3: Y, Bytes 4-5: Z
+  // The last 3 bytes (6-8) are ignored or may be for something else
+  const gyroX = buffer.readInt16LE(0); // signed int16
+  const gyroY = buffer.readInt16LE(2);
+  const gyroZ = buffer.readInt16LE(4);
+  
+  console.log(`Parsed Gyro - X: ${gyroX}, Y: ${gyroY}, Z: ${gyroZ}`);
+  
   return {
-    gyroscopeX: buffer.readFloatLE(0),
-    gyroscopeY: buffer.readFloatLE(4),
-    gyroscopeZ: buffer.readFloatLE(8),
+    gyroscopeX: gyroX,
+    gyroscopeY: gyroY,
+    gyroscopeZ: gyroZ,
   };
 }
+
 // -------------------------
 
 
