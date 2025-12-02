@@ -15,7 +15,7 @@ function decodeAccelData(base64Data: string): Pick<SensorReading, 'accelerometer
   if (!base64Data) return null;
   const buffer = Buffer.from(base64Data, 'base64');
   
-  console.log(`Accel buffer length: ${buffer.length}, hex: ${buffer.toString('hex')}`);
+  // console.log(`Accel buffer length: ${buffer.length}, hex: ${buffer.toString('hex')}`);
   
   if (buffer.length < 6) { 
     console.warn(`Received too short accelerometer data: ${buffer.length} bytes (expected at least 6)`);
@@ -41,7 +41,7 @@ function decodeGyroData(base64Data: string): Pick<SensorReading, 'gyroscopeX' | 
   if (!base64Data) return null;
   const buffer = Buffer.from(base64Data, 'base64');
   
-  console.log(`Gyro buffer length: ${buffer.length}, hex: ${buffer.toString('hex')}`);
+  // console.log(`Gyro buffer length: ${buffer.length}, hex: ${buffer.toString('hex')}`);
   
   // Device sends 9 bytes, we expect 6 bytes minimum (3 × int16)
   if (buffer.length < 6) { 
@@ -116,10 +116,10 @@ export class BluetoothSensorService {
         if (
           device &&
           (device.id === TARGET_ADDRESS ||
-            (device.name && device.name.startsWith(TARGET_NAME_PREFIX)))
+            (device.name && device.name.startsWith(TARGET_NAME_PREFIX))) // Match by name prefix 
         ) {
           this.bleManager.stopDeviceScan();
-          clearTimeout(this.scanTimeout as NodeJS.Timeout);
+          clearTimeout(this.scanTimeout as NodeJS.Timeout); //
 
           try {
             this.connection = await device.connect();

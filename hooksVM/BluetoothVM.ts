@@ -1,4 +1,4 @@
-// src/viewmodels/BluetoothVM.ts
+// ../BluetoothVM.ts
 
 import { BluetoothSensorService } from '../components/services/BluetoothSensorService';
 import { RecordingState, SensorReading } from '../Models/SensorData';
