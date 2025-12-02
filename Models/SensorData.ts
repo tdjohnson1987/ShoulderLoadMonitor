@@ -1,4 +1,4 @@
-// src/models/SensorData.ts
+// ../SensorData.ts
 
 /** Represents a single sensor reading with timestamp */
 export interface SensorReading {
@@ -9,7 +9,7 @@ export interface SensorReading {
   gyroscopeX: number;
   gyroscopeY: number;
   gyroscopeZ: number;
-  sampleIndex?: number; // Optional: tracking index
+  sampleIndex?: number; // Optional tracking index
 }
 
 /** Processed angle data from algorithms */
