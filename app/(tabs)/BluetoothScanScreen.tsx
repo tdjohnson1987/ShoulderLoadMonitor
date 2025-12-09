@@ -2,8 +2,10 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import PlainLineGraph from "../../components/PlainLineGraph";
 import { BluetoothScanViewModel } from '../../hooksVM/BluetoothVM';
 import { RecordingState } from '../../Models/SensorData'; // <-- Import Model enum for status clarity
+
 
 // Define the state shape - matching ViewModel's ScanViewState
 interface ScanViewState {
@@ -18,45 +20,65 @@ interface ScanViewState {
 }
 
 export default function BluetoothScanScreen() {
+  // --- State ---
   const [viewState, setViewState] = useState<ScanViewState>(() => {
-    // Lazy initialization of ViewModel for stable instance
-    const viewModel = new BluetoothScanViewModel(() => {}); 
+    const viewModel = new BluetoothScanViewModel(() => {});
     return viewModel.initialState as ScanViewState;
   });
-  
-  // Ensure stable ViewModel instance
+
+  // --- ViewModel ---
   const viewModel = useMemo(() => new BluetoothScanViewModel(setViewState), []);
 
+  // --- Start scanning on mount ---
   useEffect(() => {
     viewModel.startScanning();
     return () => viewModel.cleanup();
-  }, [viewModel]); // Start scanning on mount, cleanup on unmount
+  }, [viewModel]);
 
-  // Handle errors via alert (View responsibility)
+  // --- Handle errors ---
   useEffect(() => {
     if (viewState.error) {
-      Alert.alert('BLE Error', viewState.error);
+      Alert.alert("BLE Error", viewState.error);
     }
   }, [viewState.error]);
-
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>IMU Monitor</Text>
-      
+
+      {/* Status */}
       <View style={styles.statusBox}>
         {viewState.isLoading && <ActivityIndicator size="small" color="#007AFF" />}
-        <Text style={[styles.statusText, {color: viewState.isConnected ? 'green' : '#007AFF'}]}>
+        <Text style={[styles.statusText, { color: viewState.isConnected ? "green" : "#007AFF" }]}>
           {viewState.status}
         </Text>
       </View>
-      
+
+      {/* --- Accelerometer Graph & Data --- */}
+      {viewState.accelHistory.length > 0 && (
+        <View style={{ marginVertical: 8 }}>
+          <PlainLineGraph data={viewState.accelHistory} title="Accelerometer (X/Y/Z)" />
+          <Text style={styles.dataValue}>{viewState.accelString}</Text>
+        </View>
+      )}
+
       <View style={styles.dataContainer}>
-        <Text style={styles.dataHeader}>Accelerometer Readings (X, Y, Z)</Text>
+        <Text style={styles.dataHeader}>Accelerometer Readings</Text>
         <Text style={styles.dataValue}>{viewState.accelString}</Text>
-        <View style={styles.separator} />
-        
-        <Text style={styles.dataHeader}>Gyroscope Readings (X, Y, Z)</Text>
+      </View>
+
+      <View style={styles.separator} />
+
+      {/* --- Gyroscope Graph & Data --- */}
+      {viewState.gyroHistory.length > 0 && (
+        <View style={{ marginVertical: 8 }}>
+          <PlainLineGraph data={viewState.gyroHistory} title="Gyroscope (X/Y/Z)" />
+          <Text style={styles.dataValue}>{viewState.gyroString}</Text>
+        </View>
+      )}
+
+      <View style={styles.dataContainer}>
+        <Text style={styles.dataHeader}>Gyroscope Readings</Text>
         <Text style={styles.dataValue}>{viewState.gyroString}</Text>
       </View>
     </View>

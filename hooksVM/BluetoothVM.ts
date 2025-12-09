@@ -14,7 +14,10 @@ interface ScanViewState {
   accelString: string; 
   gyroString: string;  
   error: string | null;
-  isLoading: boolean; // Property added in previous step
+  isLoading: boolean;
+
+  accelHistory: { x: number; y: number; z: number }[];
+  gyroHistory: { x: number; y: number; z: number }[];
 }
 
 export class BluetoothScanViewModel {
@@ -31,7 +34,12 @@ export class BluetoothScanViewModel {
     accelString: 'X: N/A, Y: N/A, Z: N/A',
     gyroString: 'X: N/A, Y: N/A, Z: N/A',
     error: null,
+    accelHistory: [],
+    gyroHistory: [],
   };
+
+  
+
 
   constructor(setViewState: React.Dispatch<React.SetStateAction<ScanViewState>>) {
     // NOTE: The path for BluetoothSensorService may need correction based on your project structure.
@@ -41,40 +49,37 @@ export class BluetoothScanViewModel {
 
   // --- Core Data Handler ---
   private handleSensorData = (reading: Partial<SensorReading>) => {
-    // 1. Accumulate the latest data (since accel and gyro come separately)
-    this.currentReading = { 
-      ...this.currentReading, 
-      ...reading 
-    };
-    
-    // 2. Format the data for the UI
-    const { 
-      accelerometerX, accelerometerY, accelerometerZ, 
-      gyroscopeX, gyroscopeY, gyroscopeZ 
-    } = this.currentReading;
-    
-    // Check if ALL required Accel data exists before formatting
-    const accelReady = accelerometerX !== undefined && accelerometerY !== undefined && accelerometerZ !== undefined;
+    // 1. Accumulate the latest data
+    this.currentReading = { ...this.currentReading, ...reading };
 
-    const accelStr = accelReady 
-      ? `X: ${accelerometerX!.toFixed(2)}, Y: ${accelerometerY!.toFixed(2)}, Z: ${accelerometerZ!.toFixed(2)}` 
-      : this.initialState.accelString;
-      
-    // Check if ALL required Gyro data exists before formatting
-    const gyroReady = gyroscopeX !== undefined && gyroscopeY !== undefined && gyroscopeZ !== undefined;
-    
-    // Ensure all gyroscope properties are checked for undefined before using toFixed
-    const gyroStr = gyroReady
-      ? `X: ${gyroscopeX!.toFixed(2)}, Y: ${gyroscopeY!.toFixed(2)}, Z: ${gyroscopeZ!.toFixed(2)}` 
-      : this.initialState.gyroString;
+    const { accelerometerX, accelerometerY, accelerometerZ, gyroscopeX, gyroscopeY, gyroscopeZ } = this.currentReading;
 
-    // 3. Update the View State
-    this.setViewState(prev => ({
-      ...prev,
-      accelString: accelStr,
-      gyroString: gyroStr,
-      latestReading: this.currentReading as SensorReading, 
-    }));
+    this.setViewState(prev => {
+      const newAccelHistory = (accelerometerX !== undefined && accelerometerY !== undefined && accelerometerZ !== undefined)
+        ? [...prev.accelHistory, { x: accelerometerX, y: accelerometerY, z: accelerometerZ }].slice(-100)
+        : prev.accelHistory;
+
+      const newGyroHistory = (gyroscopeX !== undefined && gyroscopeY !== undefined && gyroscopeZ !== undefined)
+        ? [...prev.gyroHistory, { x: gyroscopeX, y: gyroscopeY, z: gyroscopeZ }].slice(-100)
+        : prev.gyroHistory;
+
+      const accelStr = (accelerometerX !== undefined && accelerometerY !== undefined && accelerometerZ !== undefined)
+        ? `X: ${accelerometerX.toFixed(2)}, Y: ${accelerometerY.toFixed(2)}, Z: ${accelerometerZ.toFixed(2)}`
+        : prev.accelString;
+
+      const gyroStr = (gyroscopeX !== undefined && gyroscopeY !== undefined && gyroscopeZ !== undefined)
+        ? `X: ${gyroscopeX.toFixed(2)}, Y: ${gyroscopeY.toFixed(2)}, Z: ${gyroscopeZ.toFixed(2)}`
+        : prev.gyroString;
+
+      return {
+        ...prev,
+        accelHistory: newAccelHistory,
+        gyroHistory: newGyroHistory,
+        accelString: accelStr,
+        gyroString: gyroStr,
+        latestReading: this.currentReading as SensorReading,
+      };
+    });
   };
 
   // --- Public Methods ---
