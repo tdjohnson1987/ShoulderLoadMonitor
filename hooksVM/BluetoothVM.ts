@@ -6,7 +6,7 @@ import { RecordingState, SensorReading } from '../Models/SensorData';
                                                       // and POTENTIALLY MOVE DECODING FUNCTIONS HERE
 
 // Define the shape of the data the View will consume (View State)
-interface ScanViewState {
+export interface ScanViewState {
   status: string;
   isConnected: boolean;
   recordingState: RecordingState; 
@@ -39,8 +39,6 @@ export class BluetoothScanViewModel {
   };
 
   
-
-
   constructor(setViewState: React.Dispatch<React.SetStateAction<ScanViewState>>) {
     // NOTE: The path for BluetoothSensorService may need correction based on your project structure.
     this.service = new BluetoothSensorService();
@@ -110,6 +108,9 @@ export class BluetoothScanViewModel {
     });
   }
 
+  public setRecordingState(state: RecordingState) {
+  this.setViewState(prev => ({ ...prev, recordingState: state }));
+}
   public cleanup() {
     this.service.cleanup();
   }
