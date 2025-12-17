@@ -1,38 +1,59 @@
-// app/(tabs)/index.tsx
-import { MaterialIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSession } from '../../hooksVM/SessionContext';
+import { SensorType } from '../../Models/SensorData';
 
 export default function HomeScreen() {
-  const handleGetStarted = () => {
-    // navigate to Bluetooth tab screen
-    router.push("/(tabs)/BluetoothScanScreen");
+  const router = useRouter();
+  const { setActiveSource } = useSession();
+
+  const handleSelectInternal = () => {
+    setActiveSource(SensorType.INTERNAL);
+    router.push('/(tabs)/InternalSensorScreen');
+  };
+
+  const handleSelectBluetooth = () => {
+    setActiveSource(SensorType.BLUETOOTH);
+    router.push('/(tabs)/BluetoothScanScreen');
   };
 
   return (
     <View style={styles.container}>
-      <MaterialIcons name="accessibility-new" size={96} color="#333" />
-      <Text style={styles.title}>Shoulder Load Monitor</Text>
-      <Button title="Get started" onPress={handleGetStarted} />
+      <Text style={styles.title}>Choose recording method</Text>
+      
+      <TouchableOpacity 
+        style={styles.card} 
+        onPress={handleSelectInternal}
+      >
+        <Text style={styles.cardTitle}>📱 Internal Sensor</Text>
+        <Text style={styles.cardDesc}>Use your phone's built-in IMU sensor.</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={styles.card} 
+        onPress={handleSelectBluetooth}
+      >
+        <Text style={styles.cardTitle}>🔗 Bluetooth IMU</Text>
+        <Text style={styles.cardDesc}>Connect to an external sensor device through Bluetooth.</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
+  container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#F8F9FA' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 30, textAlign: 'center' },
+  card: { 
+    backgroundColor: '#FFF', 
+    padding: 25, 
+    borderRadius: 15, 
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "600",
-    marginVertical: 16,
-  },
+  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#007AFF' },
+  cardDesc: { color: '#666', marginTop: 5 }
 });
-
-
-// npx expo run:ios --device 
