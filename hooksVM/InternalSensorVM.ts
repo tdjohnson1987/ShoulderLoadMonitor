@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { SensorReading, SensorType } from '../Models/SensorData';
-import { internalSensorService } from '../services/InternalSensorService';
+import { internalSensorService } from '../components/services/InternalSensorService';
 
 export const useRecordingViewModel = () => {
   const [readings, setReadings] = useState<SensorReading[]>([]);

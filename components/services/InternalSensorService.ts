@@ -1,6 +1,6 @@
 // services/InternalSensorService.ts
 import { Accelerometer, Gyroscope } from 'expo-sensors';
-import { SensorReading, createSensorReading } from '../Models/SensorData';
+import { SensorReading, createSensorReading } from '../../Models/SensorData';
 
 export class InternalSensorService {
   private _accel = { x: 0, y: 0, z: 0 };
