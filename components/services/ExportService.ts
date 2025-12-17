@@ -1,15 +1,55 @@
+// // ../ExportService.ts
+// import FileSystem from "expo-file-system";
+// import * as Sharing from "expo-sharing";
+
+// /**
+//  * Export Service
+//  * Handles exporting sensor data and angle calculations to CSV files.
+//  */
+// export class ExportService {
+//   /**
+//    * Convert data array of plain objects into CSV.
+//    */
+//   static convertToCSV(data: any[]): string {
+//     if (!data || data.length === 0) return "";
+
+//     const headers = Object.keys(data[0]).join(",");
+//     const rows = data.map((row) =>
+//       Object.values(row)
+//         .map((v) => String(v))
+//         .join(",")
+//     );
+
+//     return [headers, ...rows].join("\n");
+//   }
+
+//   /**
+//    * Save CSV data to a file in cacheDirectory and open share dialog.
+//    */
+//   static async saveCSVToFile(
+//     csvData: string,
+//     filename: string
+//   ): Promise<void> {
+//     const path = `${FileSystem.cacheDirectory}${filename}`;
+
+//     await FileSystem.writeAsStringAsync(path, csvData, {
+//       encoding: FileSystem.EncodingType.UTF8,
+//     });
+
+//     const canShare = await Sharing.isAvailableAsync();
+//     if (canShare) {
+//       await Sharing.shareAsync(path);
+//     } else {
+//       console.log(`CSV saved at: ${path}`);
+//     }
+//   }
+// }
+
 // ../ExportService.ts
-import FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
-/**
- * Export Service
- * Handles exporting sensor data and angle calculations to CSV files.
- */
 export class ExportService {
-  /**
-   * Convert data array of plain objects into CSV.
-   */
   static convertToCSV(data: any[]): string {
     if (!data || data.length === 0) return "";
 
@@ -23,17 +63,30 @@ export class ExportService {
     return [headers, ...rows].join("\n");
   }
 
-  /**
-   * Save CSV data to a file in cacheDirectory and open share dialog.
-   */
   static async saveCSVToFile(
     csvData: string,
     filename: string
   ): Promise<void> {
-    const path = `${FileSystem.cacheDirectory}${filename}`;
+    // FileSystem may be undefined if the module didn't load correctly
+    if (!FileSystem || !(FileSystem as any).writeAsStringAsync) {
+      console.warn("expo-file-system not available");
+      return;
+    }
 
-    await FileSystem.writeAsStringAsync(path, csvData, {
-      encoding: FileSystem.EncodingType.UTF8,
+    const baseDir =
+      (FileSystem as any).cacheDirectory ??
+      (FileSystem as any).documentDirectory ??
+      "";
+
+    if (!baseDir) {
+      console.warn("No writable directory available");
+      return;
+    }
+
+    const path = `${baseDir}${filename}`;
+
+    await (FileSystem as any).writeAsStringAsync(path, csvData, {
+      encoding: "utf8",
     });
 
     const canShare = await Sharing.isAvailableAsync();
@@ -44,6 +97,7 @@ export class ExportService {
     }
   }
 }
+
 
 /**
  * Create Shoulder Load report:
