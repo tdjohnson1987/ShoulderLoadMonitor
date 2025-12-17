@@ -89,6 +89,7 @@
 
 // BluetoothScanScreen.tsx 
 import { useNavigation } from "@react-navigation/native";
+import { router } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Button, StyleSheet, Text, View } from "react-native";
 import { BluetoothScanViewModel, ScanViewState } from "../../hooksVM/BluetoothVM";
@@ -144,7 +145,7 @@ export default function BluetoothScanScreen() {
       {viewState.isConnected && (
         <Button
           title="Go to Recording"
-          onPress={() => navigation.navigate("Recording" as never)}
+          onPress={() => router.push("/(tabs)/RecordingScreen")}
         />
       )}
     </View>

@@ -2,6 +2,7 @@
 import { router } from "expo-router";
 import React from "react";
 import { Button, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import PlainLineGraph from "../../components/PlainLineGraph";
 import { useBluetoothVM } from "../../hooksVM/BluetoothVMContext";
 import { RecordingState } from "../../Models/SensorData";
@@ -36,7 +37,7 @@ export default function RecordingScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Recording</Text>
       <Text>Status: {viewState.recordingState}</Text>
 
@@ -86,7 +87,7 @@ export default function RecordingScreen() {
         <Button title="Start" onPress={handleStart} />
         <Button title="Stop" onPress={handleStop} />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

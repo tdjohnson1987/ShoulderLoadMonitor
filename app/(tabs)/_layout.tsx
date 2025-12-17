@@ -1,33 +1,44 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+// app/(tabs)/_layout.tsx
+import { FontAwesome, FontAwesome5, MaterialIcons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooksVM/use-color-scheme';
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+export default function TabsLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+    <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen
-        name="index"
+        name="index" // Home
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarLabel: "",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="accessibility-new" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="RecordingScreen"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarLabel: "",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="show-chart" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="ReportScreen"
+        options={{
+          tabBarLabel: "",
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome5 name="file-alt" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="BluetoothScanScreen"
+        options={{
+          tabBarLabel: "",
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome name="bluetooth-b" color={color} size={size} />
+          ),
         }}
       />
     </Tabs>
