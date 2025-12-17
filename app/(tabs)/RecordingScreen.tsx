@@ -1,16 +1,17 @@
 // app/recording.tsx (or wherever your RecordingScreen lives)
 import { router } from "expo-router";
 import React from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { Button, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import PlainLineGraph from "../../components/PlainLineGraph";
 import { useBluetoothVM } from "../../hooksVM/BluetoothVMContext";
 import { RecordingState } from "../../Models/SensorData";
 
 export default function RecordingScreen() {
   const { viewState, viewModel } = useBluetoothVM();
-  console.log("REC latestReading", viewState.latestReading);
-  console.log("REC accelHistory length", viewState.accelHistory.length);
-  console.log("REC angleHistory length", viewState.angleHistory.length); // Debugging
+  // console.log("REC latestReading", viewState.latestReading);
+  // console.log("REC accelHistory length", viewState.accelHistory.length);
+  // console.log("REC angleHistory length", viewState.angleHistory.length); // Debugging, now seemingly working angleHistory
 
 
   // Map angleHistory into the shape PlainLineGraph expects
@@ -32,11 +33,12 @@ export default function RecordingScreen() {
 
   const handleStop = () => {
     viewModel.setRecordingState(RecordingState.STOPPED);
-    router.push("/ReportScreen"); // or wherever your report screen is
+    router.push("/ReportScreen"); // Navigate to ReportScreen after stopping
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safe}>
+     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Recording</Text>
       <Text>Status: {viewState.recordingState}</Text>
 
@@ -86,17 +88,28 @@ export default function RecordingScreen() {
         <Button title="Start" onPress={handleStart} />
         <Button title="Stop" onPress={handleStop} />
       </View>
-    </View>
+     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#f5f5f5" },
-  header: { fontSize: 24, fontWeight: "bold", marginBottom: 16 },
+  safe: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
+  container: {
+    paddingTop: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  header: { fontSize: 24, fontWeight: "bold", marginBottom: 16, color: "#333" },
+  block: { marginVertical: 8 },
   dataValue: { fontSize: 16, fontFamily: "monospace", marginTop: 4 },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-around",
     marginTop: 20,
   },
+  text: { color: "#111" },
 });

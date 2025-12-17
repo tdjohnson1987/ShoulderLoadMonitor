@@ -1,41 +1,47 @@
-// ReportScreen.tsx
-import { RouteProp, useRoute } from "@react-navigation/native";
-import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { SensorReading, calculateSampleRate } from "../../Models/SensorData";
-
-type ReportRoute = RouteProp<
-  {
-    Report: {
-      accelHistory: { x: number; y: number; z: number }[];
-      gyroHistory: { x: number; y: number; z: number }[];
-      readings?: SensorReading[];
-    };
-  },
-  "Report"
->;
+// app/(tabs)/ReportScreen.tsx
+import React from "react";
+import { Button, StyleSheet, Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ExportService, createShoulderLoadReport } from "../../components/services/ExportService";
+import { useBluetoothVM } from "../../hooksVM/BluetoothVMContext";
 
 export default function ReportScreen() {
-  const route = useRoute<ReportRoute>();
-  const { readings = [] } = route.params;
+  const { viewState } = useBluetoothVM();
+  const { angleHistory, accelHistory } = viewState;
 
-  const sampleRate = useMemo(
-    () => calculateSampleRate(readings),
-    [readings]
-  );
+  const handleExportAnglesCsv = async () => {
+    const csv = ExportService.convertToCSV(angleHistory);
+    await ExportService.saveCSVToFile(csv, "angles.csv");
+  };
+
+  const handleExportSimpleReport = async () => {
+    const sensorData = accelHistory.map((a, i) => ({
+      index: i,
+      accelX: a.x,
+      accelY: a.y,
+      accelZ: a.z,
+    }));
+    //Can add gyro and angle data later 
+    await createShoulderLoadReport(sensorData, angleHistory);
+  };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Session Report</Text>
-      <Text>Total samples: {readings.length}</Text>
-      <Text>Estimated sample rate: {sampleRate.toFixed(1)} Hz</Text>
-      {/* Add more stats/graphs as needed */}
-      
-    </View>
+      <Text>Total angle samples: {angleHistory.length}</Text>
+
+      <Button title="Download angle CSV" onPress={handleExportAnglesCsv} />
+      <Button title="Download simple report" onPress={handleExportSimpleReport} />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+  container: {
+    flex: 1,
+    paddingTop: 24,
+    paddingHorizontal: 20,
+    backgroundColor: "#fff",
+  },
   header: { fontSize: 24, fontWeight: "bold", marginBottom: 16 },
 });

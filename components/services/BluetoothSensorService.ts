@@ -27,7 +27,7 @@ function decodeAccelData(base64Data: string): Pick<SensorReading, 'accelerometer
   const accelY = buffer.readInt16LE(2);
   const accelZ = buffer.readInt16LE(4);
   
-  console.log(`Parsed Accel - X: ${accelX}, Y: ${accelY}, Z: ${accelZ}`);
+  // console.log(`Parsed Accel - X: ${accelX}, Y: ${accelY}, Z: ${accelZ}`); // Seems to be parsing correctly
   
   return {
     accelerometerX: accelX,
@@ -56,7 +56,7 @@ function decodeGyroData(base64Data: string): Pick<SensorReading, 'gyroscopeX' | 
   const gyroY = buffer.readInt16LE(2);
   const gyroZ = buffer.readInt16LE(4);
   
-  console.log(`Parsed Gyro - X: ${gyroX}, Y: ${gyroY}, Z: ${gyroZ}`);
+  // console.log(`Parsed Gyro - X: ${gyroX}, Y: ${gyroY}, Z: ${gyroZ}`); // Seems to be parsing correctly
   
   return {
     gyroscopeX: gyroX,
