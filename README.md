@@ -52,5 +52,5 @@ Join our community of developers creating universal apps.
 ## installations
 npm install react-native-chart-kit react-native-svg
 npx expo install expo-file-system expo-sharing
-npx expo install expo-dev-client
+npx expo install @react-native-async-storage/async-storage
 

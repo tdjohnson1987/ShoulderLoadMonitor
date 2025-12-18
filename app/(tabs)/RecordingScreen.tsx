@@ -1,11 +1,12 @@
 // app/(tabs)/RecordingScreen.tsx
 import { useLocalSearchParams } from "expo-router";
 import React from "react";
-import { Button, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Button, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PlainLineGraph from "../../components/PlainLineGraph";
 import { AccelCard, GyroCard } from "../../components/ui/SensorCards";
 
+import { StorageService } from '../../components/services/StorageService';
 import { useBluetoothVM } from "../../hooksVM/BluetoothVMContext";
 import { useInternalSensorVM } from "../../hooksVM/InternalSensorVMContext";
 import { RecordingState, SensorType } from "../../Models/SensorData";
@@ -65,11 +66,17 @@ export default function RecordingScreen() {
   };
 
   const handleExport = async () => {
-    // Om Bluetooth är valt kan du lägga till en btVM.export() här senare
-    if (isInternal) {
-      await exportCurrentData();
-    }
-  };
+  if (internalReadings.length === 0) {
+    Alert.alert("Tom data", "Det finns ingen mätning att spara.");
+    return;
+  }
+
+  // Istället för ExportService.saveAndShare använder vi nu:
+  await StorageService.saveSession(internalReadings);
+  
+  // Tips: Rensa mätningen efter att den sparats så man kan börja om
+  // setInternalReadings([]); 
+};
 
   return (
     <SafeAreaView style={styles.safe}>
