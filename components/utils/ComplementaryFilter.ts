@@ -32,7 +32,7 @@ export class ComplementaryFilter {
     const predictedAngle = this.angle + gyroAngleChange;
 
     // Correct with accelerometer data
-    this.angle = this.alpha * predictedAngle + (1 - this.alpha) * accelAngle;
+    this.angle = (this.alpha * predictedAngle + (1 - this.alpha) * accelAngle) ;
 
     return this.angle;
   }

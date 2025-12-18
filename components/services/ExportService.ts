@@ -44,83 +44,59 @@
 //     }
 //   }
 // }
-
+// ../ExportService.ts
 // ../ExportService.ts
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import { Alert } from "react-native";
 
 export class ExportService {
   static convertToCSV(data: any[]): string {
     if (!data || data.length === 0) return "";
 
-    const headers = Object.keys(data[0]).join(",");
-    const rows = data.map((row) =>
-      Object.values(row)
-        .map((v) => String(v))
-        .join(",")
-    );
+    const headers = Object.keys(data[0]);
+    const headerString = headers.join(",");
 
-    return [headers, ...rows].join("\n");
-  }
-
-  static async saveCSVToFile(
-    csvData: string,
-    filename: string
-  ): Promise<void> {
-    // FileSystem may be undefined if the module didn't load correctly
-    if (!FileSystem || !(FileSystem as any).writeAsStringAsync) {
-      console.warn("expo-file-system not available");
-      return;
-    }
-
-    const baseDir =
-      (FileSystem as any).cacheDirectory ??
-      (FileSystem as any).documentDirectory ??
-      "";
-
-    if (!baseDir) {
-      console.warn("No writable directory available");
-      return;
-    }
-
-    const path = `${baseDir}${filename}`;
-
-    await (FileSystem as any).writeAsStringAsync(path, csvData, {
-      encoding: "utf8",
+    const rows = data.map((row) => {
+      return headers
+        .map((header) => {
+          const value = row[header] ?? "";
+          // Formatera värdet som en sträng och hantera citationstecken
+          const stringValue = String(value).replace(/"/g, '""');
+          return `"${stringValue}"`;
+        })
+        .join(",");
     });
 
-    const canShare = await Sharing.isAvailableAsync();
-    if (canShare) {
-      await Sharing.shareAsync(path);
-    } else {
-      console.log(`CSV saved at: ${path}`);
+    return [headerString, ...rows].join("\n");
+  }
+
+  static async saveAndShare(csvData: string, filename: string): Promise<void> {
+    try {
+      // Vi castar FileSystem till any för att slippa röda streck på 
+      // egenskaper som vi VET finns vid runtime (cacheDirectory och EncodingType)
+      const fs = FileSystem as any;
+      const directory = fs.cacheDirectory || fs.documentDirectory;
+      
+      if (!directory) {
+        throw new Error("Lagringsutrymme hittades inte.");
+      }
+
+      const path = `${directory}${filename}`;
+      
+      // Vi använder strängen "utf8" direkt istället för FileSystem.EncodingType.UTF8
+      await FileSystem.writeAsStringAsync(path, csvData, {
+        encoding: "utf8",
+      });
+
+      if (await Sharing.shareAsync) {
+        await Sharing.shareAsync(path);
+      } else {
+        Alert.alert("Sparad", `Filen sparades lokalt: ${path}`);
+      }
+    } catch (error) {
+      console.error("Export Error:", error);
+      Alert.alert("Fel", "Kunde inte spara eller dela CSV-filen.");
     }
-  }
-}
-
-
-/**
- * Create Shoulder Load report:
- * - sensorData: raw accel/gyro samples
- * - angleData : AngleData[] from Bluetooth VM
- */
-export async function createShoulderLoadReport(
-  sensorData: any[],
-  angleData: any[]
-): Promise<void> {
-  const sensorCSV =
-    sensorData && sensorData.length > 0
-      ? ExportService.convertToCSV(sensorData)
-      : "";
-  const angleCSV =
-    angleData && angleData.length > 0
-      ? ExportService.convertToCSV(angleData)
-      : "";
-
-  if (sensorCSV) {
-    await ExportService.saveCSVToFile(sensorCSV, "sensor_data.csv");
-  }
-  if (angleCSV) {
-    await ExportService.saveCSVToFile(angleCSV, "angle_data.csv");
   }
 }
