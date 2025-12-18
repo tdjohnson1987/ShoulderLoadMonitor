@@ -20,36 +20,29 @@ export class ExportService {
     try {
       const fs = FileSystem as any;
       
-      // DEBUG: Se vad som faktiskt finns tillgängligt i din build
-      console.log("FileSystem State:", {
-        cache: fs.cacheDirectory,
-        document: fs.documentDirectory
-      });
-
-      // Vi provar båda alternativen
-      const directory = fs.cacheDirectory || fs.documentDirectory;
+      // ANVÄND documentDirectory FÖR PERMANENT LAGRING
+      const directory = fs.documentDirectory;
       
       if (!directory) {
-        // Om båda är null i en native app, är modulen inte korrekt länkad
-        throw new Error("FileSystem returnerar null. Prova att bygga om appen med 'npx expo run:ios'.");
+        throw new Error("Could not find the doc. map. ");
       }
 
-      // Se till att filnamnet börjar med ett snedstreck om directory inte slutar med ett
-      const cleanDir = directory.endsWith('/') ? directory : `${directory}/`;
-      const path = `${cleanDir}${filename}`;
+      const path = `${directory}${filename}`;
       
       await FileSystem.writeAsStringAsync(path, csvData, {
         encoding: "utf8",
       });
 
+      console.log("Fil sparad permanent på:", path);
+
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(path);
       } else {
-        Alert.alert("Sparad", `CSV finns på: ${path}`);
+        Alert.alert("Saved", `Filen finns kvar i appens dokumentmapp.`);
       }
     } catch (error: any) {
       console.error("Export Error:", error);
-      Alert.alert("Systemfel", error.message);
+      Alert.alert("Fail", error.message);
     }
   }
 }
