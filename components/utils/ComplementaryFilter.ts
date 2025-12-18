@@ -21,6 +21,10 @@ export class ComplementaryFilter {
    * @returns Updated angle estimate (degrees)
    */
   update(accelAngle: number, gyroRate: number, deltaTime: number): number {
+    if (this.angle === null) {
+      this.angle = accelAngle;
+      return this.angle;
+    }
     // Integrate gyroscope data to get angle change
     const gyroAngleChange = gyroRate * deltaTime;
 

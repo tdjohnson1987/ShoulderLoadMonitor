@@ -1,137 +1,66 @@
 // app/(tabs)/RecordingScreen.tsx
 import { useLocalSearchParams } from "expo-router";
-import React, { useMemo } from "react";
+import React from "react";
 import { Button, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PlainLineGraph from "../../components/PlainLineGraph";
 import { AccelCard, GyroCard } from "../../components/ui/SensorCards";
-import { ComplementaryFilter } from "../../components/utils/ComplementaryFilter";
-import { EWMAFilter } from "../../components/utils/EWMAFilter";
+
 import { useBluetoothVM } from "../../hooksVM/BluetoothVMContext";
 import { useInternalSensorVM } from "../../hooksVM/InternalSensorVMContext";
 import { RecordingState, SensorType } from "../../Models/SensorData";
 
 export default function RecordingScreen() {
   const params = useLocalSearchParams<{ sensorType?: string }>();
-  const selectedType =
-    params.sensorType === SensorType.INTERNAL
-      ? SensorType.INTERNAL
-      : SensorType.BLUETOOTH;
+  const isInternal = params.sensorType === SensorType.INTERNAL;
 
-  const isInternal = selectedType === SensorType.INTERNAL;
-
-  // 1. View Model Hooks
+  // View Model Hooks
   const { viewState: btState, viewModel: btVM } = useBluetoothVM();
   const {
     readings: internalReadings,
+    algo1Series: internalAlgo1, // Färdig data från VM!
+    algo2Series: internalAlgo2, // Färdig data från VM!
     startInternalRecording,
     stopRecording: stopInternal,
     isRecording,
   } = useInternalSensorVM();
 
-  // 2. Senaste data för korten
-  const latestInternal = internalReadings.length > 0
-      ? internalReadings[internalReadings.length - 1]
-      : null;
-  const latestBt = btState.latestReading;
-  const displayData = isInternal ? latestInternal : latestBt;
+  // 1. Unified Data for Cards
+  const displayData = isInternal 
+    ? internalReadings[internalReadings.length - 1] 
+    : btState.latestReading;
 
-  // 3. Status Text (Deklareras bara EN GÅNG här)
+  // 2. Unified Logic for Graphs
+  const algo1Data = isInternal ? internalAlgo1 : btState.angleHistory.map(a => ({ x: a.algorithm1Angle, y: -999, z: -999 }));
+  const algo2Data = isInternal ? internalAlgo2 : btState.angleHistory.map(a => ({ x: -999, y: a.algorithm2Angle, z: -999 }));
+  const hasData = algo1Data.length > 0;
+
   const statusText = isInternal
     ? isRecording ? "RECORDING" : "IDLE"
     : btState.recordingState;
 
-  // 4. Grafer och Filter-logik
-  const { algo1Series, algo2Series, hasAngleData } = useMemo(() => {
-    if (isInternal && internalReadings.length > 0) {
-      const ewma = new EWMAFilter(0.1);
-      const comp = new ComplementaryFilter(0.98);
-      let lastTimestamp = internalReadings[0].timestamp;
-
-      // Optimering för att förhindra lagg: Visa senaste 500 punkterna
-      const dataToProcess = internalReadings.slice(-500); 
-
-      const series1 = [];
-      const series2 = [];
-
-      for (const r of dataToProcess) {
-        const accelAngle = Math.atan2(r.accelerometerY, r.accelerometerZ) * (180 / Math.PI);
-        const dt = (r.timestamp - lastTimestamp) / 1000;
-        lastTimestamp = r.timestamp;
-
-        const val1 = ewma.update(accelAngle);
-        const currentDt = dt > 0 ? dt : 0.01;
-        const val2 = comp.update(accelAngle, r.gyroscopeX, currentDt);
-
-        series1.push({ x: val1, y: val1, z: val1 });
-        series2.push({ x: val2, y: val2, z: val2 });
-      }
-
-      return { algo1Series: series1, algo2Series: series2, hasAngleData: true };
-    }
-
-    // Bluetooth logik
-    const btHasData = btState.angleHistory.length > 0;
-    return {
-      algo1Series: btState.angleHistory.map((a) => ({ x: a.algorithm1Angle, y: a.algorithm1Angle, z: a.algorithm1Angle })),
-      algo2Series: btState.angleHistory.map((a) => ({ x: a.algorithm2Angle, y: a.algorithm2Angle, z: a.algorithm2Angle })),
-      hasAngleData: btHasData,
-    };
-  }, [isInternal, internalReadings, btState.angleHistory]);
-
-  // 5. Handlers
-  const handleStart = () => {
-    if (isInternal) {
-      startInternalRecording();
-    } else {
-      btVM.setRecordingState(RecordingState.RECORDING);
-    }
-  };
-
-  const handleStop = () => {
-    if (isInternal) {
-      console.log("STOP anropad");
-      stopInternal();
-    } else {
-      btVM.setRecordingState(RecordingState.STOPPED);
-    }
-  };
+  // Handlers
+  const handleStart = () => isInternal ? startInternalRecording() : btVM.setRecordingState(RecordingState.RECORDING);
+  const handleStop = () => isInternal ? stopInternal() : btVM.setRecordingState(RecordingState.STOPPED);
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.header}>
-          Recording ({isInternal ? "Internal" : "Bluetooth"})
-        </Text>
+        <Text style={styles.header}>Recording ({isInternal ? "Internal" : "Bluetooth"})</Text>
         <Text style={styles.status}>Status: {statusText}</Text>
 
         <AccelCard latest={displayData} />
         <GyroCard latest={displayData} />
 
-        {hasAngleData && (
+        {hasData && (
           <View style={styles.graphSection}>
-            <View style={styles.graphContainer}>
-              <PlainLineGraph
-                data={algo1Series}
-                title="EWMA Filter"
-                isRecording={isInternal ? isRecording : btState.recordingState === RecordingState.RECORDING}
-              />
-            </View>
-
-            <View style={styles.graphContainer}>
-              <PlainLineGraph
-                data={algo2Series}
-                title="Complementary Filter"
-                isRecording={isInternal ? isRecording : btState.recordingState === RecordingState.RECORDING}
-              />
-            </View>
+            <PlainLineGraph data={algo1Data} title="EWMA (Internal/BT)" isRecording={isRecording} />
+            <PlainLineGraph data={algo2Data} title="Complementary (Internal/BT)" isRecording={isRecording} />
           </View>
         )}
-        {/* Extra space för att inte dölja info bakom knapparna */}
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Knappar fastmonterade i botten */}
       <View style={styles.fixedButtonContainer}>
         <View style={styles.buttonRow}>
           <Button title="Start" onPress={handleStart} color="#007AFF" />
