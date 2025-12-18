@@ -37,57 +37,109 @@ export default function RecordingScreen() {
   const displayData = isInternal ? latestInternal : latestBt;
 
 
+  // const { algo1Series, algo2Series, hasAngleData } = useMemo(() => {
+  //   // 1. Logik för INTERNA sensorer
+  //   if (isInternal && internalReadings.length > 0) {
+  //     const ewma = new EWMAFilter(0.1);
+  //     const comp = new ComplementaryFilter(0.98);
+
+  //     let lastTimestamp = internalReadings[0].timestamp;
+
+  //     const series1 = [];
+  //     const series2 = [];
+
+  //     for (const r of internalReadings) {
+  //       // Beräkna vinkel från accelerometer (använder Y och Z för lutning)
+  //       // Vi använder Math.atan2 för att få vinkeln i förhållande till gravitationen
+  //       const accelAngle = Math.atan2(r.accelerometerY, r.accelerometerZ) * (180 / Math.PI);
+
+  //       // Beräkna deltaTime (sekunder mellan mätningar)
+  //       const dt = (r.timestamp - lastTimestamp) / 1000;
+  //       lastTimestamp = r.timestamp;
+
+  //       // Uppdatera filter
+  //       const val1 = ewma.update(accelAngle);
+        
+  //       // Vi använder gyroscopeX för rotation runt X-axeln (vanligast för armlyft)
+  //       // Om grafen går åt fel håll, ändra r.gyroscopeX till -r.gyroscopeX
+  //       const val2 = comp.update(accelAngle, r.gyroscopeX, dt > 0 ? dt : 0.01);
+
+  //       series1.push({ x: val1, y: val1, z: val1 });
+  //       series2.push({ x: val2, y: val2, z: val2 });
+  //     }
+
+  //     return { 
+  //       algo1Series: series1, 
+  //       algo2Series: series2, 
+  //       hasAngleData: series1.length > 0 
+  //     };
+  //   }
+
+  //   // 2. Logik för BLUETOOTH sensorer
+  //   const btHasData = btState.angleHistory.length > 0;
+  //   return {
+  //     algo1Series: btState.angleHistory.map((a) => ({
+  //       x: a.algorithm1Angle,
+  //       y: a.algorithm1Angle,
+  //       z: a.algorithm1Angle,
+  //     })),
+  //     algo2Series: btState.angleHistory.map((a) => ({
+  //       x: a.algorithm2Angle,
+  //       y: a.algorithm2Angle,
+  //       z: a.algorithm2Angle,
+  //     })),
+  //     hasAngleData: btHasData,
+  //   };
+  // }, [isInternal, internalReadings, btState.angleHistory]);
+
   const { algo1Series, algo2Series, hasAngleData } = useMemo(() => {
-    // 1. Logik för INTERNA sensorer
+    // 1. Internal sensor
     if (isInternal && internalReadings.length > 0) {
       const ewma = new EWMAFilter(0.1);
       const comp = new ComplementaryFilter(0.98);
 
       let lastTimestamp = internalReadings[0].timestamp;
+      const series1: { x: number; y: number; z: number }[] = [];
+      const series2: { x: number; y: number; z: number }[] = [];
 
-      const series1 = [];
-      const series2 = [];
+      internalReadings.forEach((r, i) => {
+        const accelAngle =
+          Math.atan2(r.accelerometerY, r.accelerometerZ) * (180 / Math.PI);
 
-      for (const r of internalReadings) {
-        // Beräkna vinkel från accelerometer (använder Y och Z för lutning)
-        // Vi använder Math.atan2 för att få vinkeln i förhållande till gravitationen
-        const accelAngle = Math.atan2(r.accelerometerY, r.accelerometerZ) * (180 / Math.PI);
-
-        // Beräkna deltaTime (sekunder mellan mätningar)
         const dt = (r.timestamp - lastTimestamp) / 1000;
         lastTimestamp = r.timestamp;
 
-        // Uppdatera filter
         const val1 = ewma.update(accelAngle);
-        
-        // Vi använder gyroscopeX för rotation runt X-axeln (vanligast för armlyft)
-        // Om grafen går åt fel håll, ändra r.gyroscopeX till -r.gyroscopeX
         const val2 = comp.update(accelAngle, r.gyroscopeX, dt > 0 ? dt : 0.01);
 
-        series1.push({ x: val1, y: val1, z: val1 });
-        series2.push({ x: val2, y: val2, z: val2 });
-      }
+        series1.push({ x: i, y: val1, z: 0 }); // index on x, angle on y
+        series2.push({ x: i, y: val2, z: 0 });
+      });
 
-      return { 
-        algo1Series: series1, 
-        algo2Series: series2, 
-        hasAngleData: series1.length > 0 
+      return {
+        algo1Series: series1,
+        algo2Series: series2,
+        hasAngleData: series1.length > 0,
       };
     }
 
-    // 2. Logik för BLUETOOTH sensorer
+    // 2. Bluetooth sensor
     const btHasData = btState.angleHistory.length > 0;
+
+    const series1 = btState.angleHistory.map((a, i) => ({
+      x: i,
+      y: a.algorithm1Angle,
+      z: 0,
+    }));
+    const series2 = btState.angleHistory.map((a, i) => ({
+      x: i,
+      y: a.algorithm2Angle,
+      z: 0,
+    }));
+
     return {
-      algo1Series: btState.angleHistory.map((a) => ({
-        x: a.algorithm1Angle,
-        y: a.algorithm1Angle,
-        z: a.algorithm1Angle,
-      })),
-      algo2Series: btState.angleHistory.map((a) => ({
-        x: a.algorithm2Angle,
-        y: a.algorithm2Angle,
-        z: a.algorithm2Angle,
-      })),
+      algo1Series: series1,
+      algo2Series: series2,
       hasAngleData: btHasData,
     };
   }, [isInternal, internalReadings, btState.angleHistory]);
@@ -105,7 +157,7 @@ export default function RecordingScreen() {
     if (isInternal) {
       stopInternal();
     } else {
-      btVM.setRecordingState(RecordingState.STOPPED);
+      btVM.stopRecording();
     }
   };
 
@@ -175,118 +227,3 @@ const styles = StyleSheet.create({
   },
 });
 
-// // app/recording.tsx (or wherever your RecordingScreen lives)
-// import { router } from "expo-router";
-// import React from "react";
-// import { Button, ScrollView, StyleSheet, Text, View } from "react-native";
-// import { SafeAreaView } from "react-native-safe-area-context";
-// import PlainLineGraph from "../../components/PlainLineGraph";
-// import { useBluetoothVM } from "../../hooksVM/BluetoothVMContext";
-// import { RecordingState } from "../../Models/SensorData";
-
-// export default function RecordingScreen() {
-//   const { viewState, viewModel } = useBluetoothVM();
-//   // console.log("REC latestReading", viewState.latestReading);
-//   // console.log("REC accelHistory length", viewState.accelHistory.length);
-//   // console.log("REC angleHistory length", viewState.angleHistory.length); // Debugging, now seemingly working angleHistory
-
-
-//   // Map angleHistory into the shape PlainLineGraph expects
-//   const algo1Series = viewState.angleHistory.map((a) => ({
-//     x: a.algorithm1Angle,
-//     y: a.algorithm1Angle,
-//     z: a.algorithm1Angle,
-//   }));
-
-//   const algo2Series = viewState.angleHistory.map((a) => ({
-//     x: a.algorithm2Angle,
-//     y: a.algorithm2Angle,
-//     z: a.algorithm2Angle,
-//   }));
-
-//   const handleStart = () => {
-//     viewModel.setRecordingState(RecordingState.RECORDING);
-//   };
-
-//   const handleStop = () => {
-//     viewModel.setRecordingState(RecordingState.STOPPED);
-//     router.push("/ReportScreen"); // Navigate to ReportScreen after stopping
-//   };
-
-//   return (
-//     <SafeAreaView style={styles.safe}>
-//      <ScrollView contentContainerStyle={styles.container}>
-//       <Text style={styles.header}>Recording</Text>
-//       <Text>Status: {viewState.recordingState}</Text>
-
-//       {/* Raw accelerometer graph */}
-//       {viewState.accelHistory.length > 0 && (
-//         <View style={{ marginVertical: 8 }}>
-//           <PlainLineGraph
-//             data={viewState.accelHistory}
-//             title="Accelerometer (X/Y/Z)"
-//           />
-//           <Text style={styles.dataValue}>{viewState.accelString}</Text>
-//         </View>
-//       )}
-
-//       {/* Raw gyroscope graph */}
-//       {viewState.gyroHistory.length > 0 && (
-//         <View style={{ marginVertical: 8 }}>
-//           <PlainLineGraph
-//             data={viewState.gyroHistory}
-//             title="Gyroscope (X/Y/Z)"
-//           />
-//           <Text style={styles.dataValue}>{viewState.gyroString}</Text>
-//         </View>
-//       )}
-
-//       {/* Algorithm 1 – EWMA angle */}
-//       {viewState.angleHistory.length > 0 && (
-//         <View style={{ marginVertical: 8 }}>
-//           <PlainLineGraph
-//             data={algo1Series}
-//             title="Upper arm angle – Algorithm 1 (EWMA)"
-//           />
-//         </View>
-//       )}
-
-//       {/* Algorithm 2 – Complementary filter angle */}
-//       {viewState.angleHistory.length > 0 && (
-//         <View style={{ marginVertical: 8 }}>
-//           <PlainLineGraph
-//             data={algo2Series}
-//             title="Upper arm angle – Algorithm 2 (Complementary)"
-//           />
-//         </View>
-//       )}
-
-//       <View style={styles.buttonRow}>
-//         <Button title="Start" onPress={handleStart} />
-//         <Button title="Stop" onPress={handleStop} />
-//       </View>
-//      </ScrollView>
-//     </SafeAreaView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   safe: {
-//     flex: 1,
-//     backgroundColor: "#f5f5f5",
-//   },
-//   container: {
-//     paddingTop: 24,
-//     paddingHorizontal: 20,
-//     paddingBottom: 40,
-//   },
-//   header: { fontSize: 24, fontWeight: "bold", marginBottom: 16, color: "#333" },
-//   block: { marginVertical: 8 },
-//   dataValue: { fontSize: 16, fontFamily: "monospace", marginTop: 4 },
-//   buttonRow: {
-//     flexDirection: "row",
-//     justifyContent: "space-around",
-//     marginTop: 20,
-//   },
-//   text: { color: "#111" },
-// });
