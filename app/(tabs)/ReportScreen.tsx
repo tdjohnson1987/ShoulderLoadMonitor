@@ -50,10 +50,10 @@ export default function ReportScreen() {
         {/* Visa endast sektionen som valts eller har data */}
         {(activeSource === SensorType.INTERNAL || internalReadings.length > 0) && (
           <View style={[styles.section, activeSource === SensorType.INTERNAL && styles.activeSection]}>
-            <Text style={styles.subHeader}>📱 Intern Sensor</Text>
+            <Text style={styles.subHeader}>📱 Internal Sensor</Text>
             <Text style={styles.statText}>Samples: {internalReadings.length}</Text>
             <Button 
-              title="Exportera CSV" 
+              title="Export CSV" 
               onPress={() => handleExport('internal')} 
               disabled={internalReadings.length === 0}
             />
@@ -62,10 +62,10 @@ export default function ReportScreen() {
 
         {(activeSource === SensorType.BLUETOOTH || bleState.accelHistory.length > 0) && (
           <View style={[styles.section, styles.mt20, activeSource === SensorType.BLUETOOTH && styles.activeSection]}>
-            <Text style={styles.subHeader}>🔗 Bluetooth Enhet</Text>
+            <Text style={styles.subHeader}>🔗 Bluetooth Sensor</Text>
             <Text style={styles.statText}>Samples: {bleState.accelHistory.length}</Text>
             <Button 
-              title="Exportera Bluetooth Rapport" 
+              title="Export Bluetooth Report" 
               onPress={() => handleExport('bluetooth')} 
               disabled={bleState.accelHistory.length === 0}
             />

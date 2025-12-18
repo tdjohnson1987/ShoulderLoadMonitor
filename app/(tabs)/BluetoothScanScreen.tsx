@@ -1,8 +1,16 @@
 // app/(tabs)/BluetoothScanScreen.tsx
 import { router } from "expo-router";
 import React, { useEffect } from "react";
-import { ActivityIndicator, Alert, Button, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useBluetoothVM } from "../../hooksVM/BluetoothVMContext";
+import { SensorType } from "../../Models/SensorData";
 
 export default function BluetoothScanScreen() {
   const { viewState, viewModel } = useBluetoothVM();
@@ -18,30 +26,38 @@ export default function BluetoothScanScreen() {
     }
   }, [viewState.error]);
 
+  const handleGoToRecording = () => {
+    router.push({
+      pathname: "/(tabs)/RecordingScreen",
+      params: { sensorType: SensorType.BLUETOOTH },
+    });
+  };
+
+  const isReady = viewState.isConnected;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>IMU Monitor</Text>
+      <Text style={styles.title}>Bluetooth IMU</Text>
 
-      <View style={styles.statusBox}>
+      <View style={styles.statusCard}>
         {viewState.isLoading && (
           <ActivityIndicator size="small" color="#007AFF" />
         )}
-        <Text
-          style={[
-            styles.statusText,
-            { color: viewState.isConnected ? "green" : "#007AFF" },
-          ]}
-        >
-          {viewState.status}
-        </Text>
+        <Text style={styles.statusText}>{viewState.status}</Text>
       </View>
 
-      {viewState.isConnected && (
-        <Button
-          title="Go to Recording"
-          onPress={() => router.push("/(tabs)/RecordingScreen")}
-        />
-      )}
+      <TouchableOpacity
+        style={[
+          styles.button,
+          { backgroundColor: isReady ? "#007AFF" : "#A0AEC0" },
+        ]}
+        disabled={!isReady}
+        onPress={handleGoToRecording}
+      >
+        <Text style={styles.buttonText}>
+          {isReady ? "Go to recording" : "Waiting for device..."}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -49,34 +65,42 @@ export default function BluetoothScanScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f5f5f5",
-    alignItems: "center",
     justifyContent: "center",
+    padding: 20,
+    backgroundColor: "#F8F9FA",
   },
-  header: {
+  title: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 30,
-    color: "#333",
+    textAlign: "center",
   },
-  statusBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 40,
-    padding: 15,
-    backgroundColor: "#fff",
-    borderRadius: 10,
+  statusCard: {
+    backgroundColor: "#FFF",
+    padding: 20,
+    borderRadius: 15,
+    marginBottom: 30,
+    elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 10,
+    alignItems: "center",
   },
   statusText: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 10,
-    color: "#007AFF",
+    marginTop: 8,
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+  },
+  button: {
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });

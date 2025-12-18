@@ -10,7 +10,7 @@ export default function HomeScreen() {
 
   const handleSelectInternal = () => {
     setActiveSource(SensorType.INTERNAL);
-    router.push('/(tabs)/InternalSensorScreen');
+    router.push('/(tabs)/RecordingScreen');
   };
 
   const handleSelectBluetooth = () => {
