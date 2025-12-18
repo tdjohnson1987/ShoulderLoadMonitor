@@ -133,47 +133,30 @@ export class BluetoothScanViewModel {
         }
         this.lastTimestamp = timestamp;
 
-        // Doublecheck datasheet for the right LSB sensitivity.
-        const ACCEL_LSB_PER_G = 16384;    // e.g. ±2g
-        const GYRO_LSB_PER_DPS = 16.4;    // e.g. ±2000 deg/s
+          // Scale raw BLE counts to g
+        const ACCEL_LSB_PER_G = 16384;   // adjust to your IMU
+        const GYRO_LSB_PER_DPS = 16.4;   // adjust to your IMU
 
-        // scale raw counts to g
         const ax_g = accelerometerX / ACCEL_LSB_PER_G;
         const ay_g = accelerometerY / ACCEL_LSB_PER_G;
         const az_g = accelerometerZ / ACCEL_LSB_PER_G;
 
-        // scale raw counts to deg/s, then to rad/s for Madgwick
-        const gx_dps = gyroscopeX / GYRO_LSB_PER_DPS;
-        const gy_dps = gyroscopeY / GYRO_LSB_PER_DPS;
-        const gz_dps = gyroscopeZ / GYRO_LSB_PER_DPS;
-
-        const gx_rad = gx_dps * (Math.PI / 180);
-        const gy_rad = gy_dps * (Math.PI / 180);
-        const gz_rad = gz_dps * (Math.PI / 180);
-
-        // Use scaled values for Madgwick
-        const { roll, pitch, yaw } = AngleCalculator.calculateAnglesWithMadgwick(
+        // 1D upper‑arm elevation from accel (frontal plane)
+        const accelAngleDeg = AngleCalculator.calculateFrontalPlaneAngle(
           ax_g,
           ay_g,
-          az_g,
-          gx_rad,
-          gy_rad,
-          gz_rad,
-          dt
+          az_g
         );
 
-        // Upper‑arm angle in degrees from fusion:
-        const accelAngleDeg = pitch;
+        // Gyro rate in deg/s on the axis that matches that plane
+        const gx_dps = gyroscopeX / GYRO_LSB_PER_DPS;
 
-        // Algorithm 1 (EWMA on fused angle)
+        // Filters
         const algorithm1Angle = this.ewmaFilter.update(accelAngleDeg);
-
-        // Algorithm 2 (complementary on degrees)
-        const gyroRateDegPerSec = gy_dps;        // now in deg/s
         const algorithm2Angle = this.compFilter.update(
           accelAngleDeg,
-          gyroRateDegPerSec,
-          dt
+          gx_dps,
+          dt > 0 ? dt : 0.01
         );
 
       
