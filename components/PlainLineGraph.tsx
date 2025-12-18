@@ -26,7 +26,7 @@ export default function PlainLineGraph({
   const pointsPerScreen = 50; 
   const pointDistance = (screenWidth - 40) / pointsPerScreen; 
 
-  const minVal = -20; 
+  const minVal = -180; 
   const maxVal = 180; 
   const range = maxVal - minVal || 1;
 

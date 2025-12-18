@@ -1,5 +1,5 @@
 // hooksVM/InternalSensorVMContext.tsx
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { SensorReading } from '../Models/SensorData';
 import { internalSensorService } from '../components/services/InternalSensorService';
 
@@ -15,18 +15,34 @@ const InternalSensorContext = createContext<InternalSensorContextType | undefine
 export const InternalSensorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [readings, setReadings] = useState<SensorReading[]>([]);
   const [isRecording, setIsRecording] = useState<boolean>(false);
-
-  const startInternalRecording = useCallback(() => {
-    setReadings([]);
-    setIsRecording(true);
-    internalSensorService.start(100, (newReading) => {
-      setReadings(current => [...current, newReading]);
-    });
-  }, []);
+  
+  // Ref för att kontrollera callbacken
+  const isRecordingRef = useRef(false);
 
   const stopRecording = useCallback(() => {
-    internalSensorService.stop();
+    console.log("STOP anropad");
+    isRecordingRef.current = false; 
     setIsRecording(false);
+    internalSensorService.stop(); // Se till att denna faktiskt kör .remove() på alla lyssnare
+  }, []);
+
+  const startInternalRecording = useCallback(() => {
+    // 1. Säkerhetsställ att vi dödar eventuella gamla lyssnare först
+    internalSensorService.stop();
+    
+    // 2. Nollställ data
+    setReadings([]);
+    
+    // 3. Aktivera spärrar
+    isRecordingRef.current = true;
+    setIsRecording(true);
+
+    // 4. Starta
+    internalSensorService.start(100, (newReading) => {
+      if (isRecordingRef.current) {
+        setReadings(current => [...current, newReading]);
+      }
+    });
   }, []);
 
   return (

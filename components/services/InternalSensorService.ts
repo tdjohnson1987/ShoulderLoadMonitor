@@ -15,7 +15,9 @@ export class InternalSensorService {
   }
 
   start(updateIntervalMs: number, onData: (reading: SensorReading) => void) {
-    // Sätt intervall
+    // 1. VIKTIGAST: Stoppa ALLA existerande lyssnare innan vi startar nya
+    this.stop(); 
+
     Accelerometer.setUpdateInterval(updateIntervalMs);
     Gyroscope.setUpdateInterval(updateIntervalMs);
 
@@ -39,6 +41,11 @@ export class InternalSensorService {
   }
 
   stop() {
+    // Logga så du ser att det faktiskt händer något i terminalen
+    if (this._subscriptionAccel || this._subscriptionGyro) {
+      console.log("Stoppar hårdvarusensorer och rensar lyssnare...");
+    }
+
     this._subscriptionAccel?.remove();
     this._subscriptionGyro?.remove();
     this._subscriptionAccel = null;
