@@ -133,34 +133,49 @@ export class BluetoothScanViewModel {
         }
         this.lastTimestamp = timestamp;
 
-        // Orientation via Madgwick (roll, pitch, yaw in degrees)
-        const { roll, pitch, yaw } =
-          AngleCalculator.calculateAnglesWithMadgwick(
-            accelerometerX,
-            accelerometerY,
-            accelerometerZ,
-            gyroscopeX,
-            gyroscopeY,
-            gyroscopeZ,
-            dt
-          );
+        // Doublecheck datasheet for the right LSB sensitivity.
+        const ACCEL_LSB_PER_G = 16384;    // e.g. ±2g
+        const GYRO_LSB_PER_DPS = 16.4;    // e.g. ±2000 deg/s
 
-        // Choose plane: pitch as upper arm angle (sagittal), roll as lateral
+        // scale raw counts to g
+        const ax_g = accelerometerX / ACCEL_LSB_PER_G;
+        const ay_g = accelerometerY / ACCEL_LSB_PER_G;
+        const az_g = accelerometerZ / ACCEL_LSB_PER_G;
+
+        // scale raw counts to deg/s, then to rad/s for Madgwick
+        const gx_dps = gyroscopeX / GYRO_LSB_PER_DPS;
+        const gy_dps = gyroscopeY / GYRO_LSB_PER_DPS;
+        const gz_dps = gyroscopeZ / GYRO_LSB_PER_DPS;
+
+        const gx_rad = gx_dps * (Math.PI / 180);
+        const gy_rad = gy_dps * (Math.PI / 180);
+        const gz_rad = gz_dps * (Math.PI / 180);
+
+        // Use scaled values for Madgwick
+        const { roll, pitch, yaw } = AngleCalculator.calculateAnglesWithMadgwick(
+          ax_g,
+          ay_g,
+          az_g,
+          gx_rad,
+          gy_rad,
+          gz_rad,
+          dt
+        );
+
+        // Upper‑arm angle in degrees from fusion:
         const accelAngleDeg = pitch;
 
-        // Algorithm 1: EWMA on Madgwick angle
+        // Algorithm 1 (EWMA on fused angle)
         const algorithm1Angle = this.ewmaFilter.update(accelAngleDeg);
-    
 
-        // Algorithm 2: complementary filter (accel angle + gyro rate)
-        // Use gyro axis aligned with that plane (e.g. gyroscopeY?)
-        const gyroRateDegPerSec = gyroscopeY; // ensure this is in deg/s
+        // Algorithm 2 (complementary on degrees)
+        const gyroRateDegPerSec = gy_dps;        // now in deg/s
         const algorithm2Angle = this.compFilter.update(
           accelAngleDeg,
           gyroRateDegPerSec,
           dt
-          
         );
+
       
         console.log("BT algo1", algorithm1Angle, "algo2", algorithm2Angle);
 
