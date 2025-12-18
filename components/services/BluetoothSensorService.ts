@@ -177,14 +177,26 @@ export class BluetoothSensorService {
     });
   }
 
-  cleanup() {
-    this.accelSubscription?.remove();
-    this.gyroSubscription?.remove();
-    this.connection?.cancelConnection(); 
-    this.connection = null;
-    this.scanTimeout && clearTimeout(this.scanTimeout);
-    
-    // Destroy the manager on unmount
-    this.bleManager.destroy(); 
-  }
+ /** Stop only notifications / data streaming, keep connection. */
+ stopStreaming() {
+   this.accelSubscription?.remove();
+   this.gyroSubscription?.remove();
+   this.accelSubscription = null;
+   this.gyroSubscription = null;
+ }
+
+ cleanup() {
+   // stop streaming and disconnect fully
+   this.stopStreaming();
+   this.connection?.cancelConnection();
+   this.connection = null;
+
+   if (this.scanTimeout) {
+     clearTimeout(this.scanTimeout as NodeJS.Timeout);
+     this.scanTimeout = null;
+   }
+
+   // Destroy the manager on unmount
+   this.bleManager.destroy();
+ }
 }

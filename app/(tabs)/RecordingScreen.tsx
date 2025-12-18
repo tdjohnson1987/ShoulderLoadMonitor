@@ -1,12 +1,12 @@
-// app/(tabs)/RecordingScreen.tsx
+// RecordingScreen.tsx
+
 import { useLocalSearchParams } from "expo-router";
 import React, { useMemo } from "react";
 import { Button, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 import PlainLineGraph from "../../components/PlainLineGraph";
 import { AccelCard, GyroCard } from "../../components/ui/SensorCards";
-import { ComplementaryFilter } from "../../components/utils/ComplementaryFilter";
-import { EWMAFilter } from "../../components/utils/EWMAFilter";
 import { useBluetoothVM } from "../../hooksVM/BluetoothVMContext";
 import { RecordingState, SensorType } from "../../Models/SensorData";
 // Byt ut useRecordingViewModel mot useInternalSensorVM
@@ -19,21 +19,20 @@ export default function RecordingScreen() {
     params.sensorType === SensorType.INTERNAL
       ? SensorType.INTERNAL
       : SensorType.BLUETOOTH;
-
   const isInternal = selectedType === SensorType.INTERNAL;
 
-  // View Model Hooks
   const { viewState: btState, viewModel: btVM } = useBluetoothVM();
   // ... inuti RecordingScreen-komponenten:
   const {
     readings: internalReadings,
+    angleHistory: internalAngleHistory,
     startInternalRecording,
     stopRecording: stopInternal,
     isRecording,
   } = useInternalSensorVM(); // Använd Context-hooken här!
 
-  // 1. Determine Latest Data for Cards
-  const latestInternal = internalReadings.length > 0
+  const latestInternal =
+    internalReadings.length > 0
       ? internalReadings[internalReadings.length - 1]
       : null;
   const latestBt = btState.latestReading;

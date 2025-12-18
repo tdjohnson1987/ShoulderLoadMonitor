@@ -50,7 +50,7 @@ export class BluetoothScanViewModel {
     gyroHistory: [],
     angleHistory: [],
   };
-
+  
   constructor(
     setViewState: React.Dispatch<React.SetStateAction<ScanViewState>>
   ) {
@@ -150,6 +150,7 @@ export class BluetoothScanViewModel {
 
         // Algorithm 1: EWMA on Madgwick angle
         const algorithm1Angle = this.ewmaFilter.update(accelAngleDeg);
+    
 
         // Algorithm 2: complementary filter (accel angle + gyro rate)
         // Use gyro axis aligned with that plane (e.g. gyroscopeY?)
@@ -158,7 +159,10 @@ export class BluetoothScanViewModel {
           accelAngleDeg,
           gyroRateDegPerSec,
           dt
+          
         );
+      
+        console.log("BT algo1", algorithm1Angle, "algo2", algorithm2Angle);
 
         const angleSample: AngleData = {
           timestamp,
@@ -169,6 +173,7 @@ export class BluetoothScanViewModel {
         newAngleHistory = [...prev.angleHistory, angleSample].slice(-500);
       }
 
+      
       return {
         ...prev,
         accelHistory: newAccelHistory,
@@ -209,7 +214,16 @@ export class BluetoothScanViewModel {
         }));
       });
   }
+  
+  public stopRecording() {
+    this.service.stopStreaming();
+    this.setViewState((prev) => ({
+      ...prev,
+      recordingState: RecordingState.STOPPED,
+    }));
+  }
 
+  
   public setRecordingState(state: RecordingState) {
     this.setViewState((prev) => ({ ...prev, recordingState: state }));
   }
