@@ -4,38 +4,36 @@ import { internalSensorService } from '../components/services/InternalSensorServ
 
 export const useInternalViewModel = () => {
   const [readings, setReadings] = useState<SensorReading[]>([]);
-  const [angleHistory, setAngleHistory] = useState<AngleData[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [sensorType, setSensorType] = useState(SensorType.INTERNAL);
 
-  // filters + timestamp are kept per recording session
-  const [ewma] = useState(() => new EWMAFilter(0.1));
-  const [comp] = useState(() => new ComplementaryFilter(0.98));
-  const [lastTimestamp, setLastTimestamp] = useState<number | null>(null);
-
-  // Denna ref fungerar som en omedelbar "hård" strömbrytare
+  // Ref fungerar som en omedelbar synkron strömbrytare
   const isRecordingRef = useRef(false);
 
+  const stopRecording = useCallback(() => {
+    console.log("STOP: Stoppar nu");
+    isRecordingRef.current = false; // Stoppar callback-flödet omedelbart
+    setIsRecording(false);
+    internalSensorService.stop(); // Stoppar hårdvaran
+  }, []);
+
   const startInternalRecording = useCallback(() => {
-    console.log("start recording:");
+    console.log("START: Rensar gamla lyssnare och startar ny");
+    
+    // Säkerhetsåtgärd: Stoppa alltid en eventuell körande session först
+    internalSensorService.stop();
+    
     setReadings([]);
-    isRecordingRef.current = true; // Sätt ref till true direkt
+    isRecordingRef.current = true;
     setIsRecording(true);
-    setLastTimestamp(null);
 
     internalSensorService.start(100, (newReading) => {
-      // VIKTIGT: Om vi har klickat stop, strunta i att uppdatera statet
+      // Denna check är kritisk för "direkt" stopp
       if (isRecordingRef.current) {
         setReadings(current => [...current, newReading]);
       }
     });
-  }, [comp, ewma, lastTimestamp]);
-
-  const stopRecording = useCallback(() => {
-    isRecordingRef.current = false; // Denna rad stoppar inflödet INSTANT
-    setIsRecording(false);
-    internalSensorService.stop();
-  }, []);
+  }, []); // Tom array här är viktig! Vi vill inte skappa om denna funktion i onödan.
 
   return {
     readings,

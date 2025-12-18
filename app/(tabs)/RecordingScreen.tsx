@@ -1,17 +1,15 @@
-// RecordingScreen.tsx
-
+// app/(tabs)/RecordingScreen.tsx
 import { useLocalSearchParams } from "expo-router";
 import React, { useMemo } from "react";
 import { Button, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import PlainLineGraph from "../../components/PlainLineGraph";
 import { AccelCard, GyroCard } from "../../components/ui/SensorCards";
+import { ComplementaryFilter } from "../../components/utils/ComplementaryFilter";
+import { EWMAFilter } from "../../components/utils/EWMAFilter";
 import { useBluetoothVM } from "../../hooksVM/BluetoothVMContext";
-import { RecordingState, SensorType } from "../../Models/SensorData";
-// Byt ut useRecordingViewModel mot useInternalSensorVM
 import { useInternalSensorVM } from "../../hooksVM/InternalSensorVMContext";
-
+import { RecordingState, SensorType } from "../../Models/SensorData";
 
 export default function RecordingScreen() {
   const params = useLocalSearchParams<{ sensorType?: string }>();
@@ -19,39 +17,38 @@ export default function RecordingScreen() {
     params.sensorType === SensorType.INTERNAL
       ? SensorType.INTERNAL
       : SensorType.BLUETOOTH;
+
   const isInternal = selectedType === SensorType.INTERNAL;
 
+  // 1. View Model Hooks
   const { viewState: btState, viewModel: btVM } = useBluetoothVM();
-  // ... inuti RecordingScreen-komponenten:
   const {
     readings: internalReadings,
-    angleHistory: internalAngleHistory,
     startInternalRecording,
     stopRecording: stopInternal,
     isRecording,
-  } = useInternalSensorVM(); // Använd Context-hooken här!
+  } = useInternalSensorVM();
 
-  const latestInternal =
-    internalReadings.length > 0
+  // 2. Senaste data för korten
+  const latestInternal = internalReadings.length > 0
       ? internalReadings[internalReadings.length - 1]
       : null;
   const latestBt = btState.latestReading;
   const displayData = isInternal ? latestInternal : latestBt;
 
-// Lägg till denna variabel innan return (den saknades i din kod)
-const statusText = isInternal
-  ? isRecording ? "RECORDING" : "IDLE"
-  : btState.recordingState;
+  // 3. Status Text (Deklareras bara EN GÅNG här)
+  const statusText = isInternal
+    ? isRecording ? "RECORDING" : "IDLE"
+    : btState.recordingState;
 
+  // 4. Grafer och Filter-logik
   const { algo1Series, algo2Series, hasAngleData } = useMemo(() => {
     if (isInternal && internalReadings.length > 0) {
-      // Skapa filterna EN GÅNG för denna beräkning
       const ewma = new EWMAFilter(0.1);
       const comp = new ComplementaryFilter(0.98);
-
       let lastTimestamp = internalReadings[0].timestamp;
-      
-      // Vi slice:ar för att hålla JS-tråden vid liv
+
+      // Optimering för att förhindra lagg: Visa senaste 500 punkterna
       const dataToProcess = internalReadings.slice(-500); 
 
       const series1 = [];
@@ -63,7 +60,6 @@ const statusText = isInternal
         lastTimestamp = r.timestamp;
 
         const val1 = ewma.update(accelAngle);
-        // Säkerställ att vi inte har negativt eller noll dt som kan krascha filter
         const currentDt = dt > 0 ? dt : 0.01;
         const val2 = comp.update(accelAngle, r.gyroscopeX, currentDt);
 
@@ -71,21 +67,19 @@ const statusText = isInternal
         series2.push({ x: val2, y: val2, z: val2 });
       }
 
-      return { 
-        algo1Series: series1, 
-        algo2Series: series2, 
-        hasAngleData: series1.length > 0 
-      };
+      return { algo1Series: series1, algo2Series: series2, hasAngleData: true };
     }
 
-    // Bluetooth-delen (oförändrad)
+    // Bluetooth logik
+    const btHasData = btState.angleHistory.length > 0;
     return {
-      algo1Series: btState.angleHistory.map(a => ({ x: a.algorithm1Angle, y: a.algorithm1Angle, z: a.algorithm1Angle })),
-      algo2Series: btState.angleHistory.map(a => ({ x: a.algorithm2Angle, y: a.algorithm2Angle, z: a.algorithm2Angle })),
-      hasAngleData: btState.angleHistory.length > 0,
+      algo1Series: btState.angleHistory.map((a) => ({ x: a.algorithm1Angle, y: a.algorithm1Angle, z: a.algorithm1Angle })),
+      algo2Series: btState.angleHistory.map((a) => ({ x: a.algorithm2Angle, y: a.algorithm2Angle, z: a.algorithm2Angle })),
+      hasAngleData: btHasData,
     };
   }, [isInternal, internalReadings, btState.angleHistory]);
-  // --- 3. Handlers (Lägg till dessa!) ---
+
+  // 5. Handlers
   const handleStart = () => {
     if (isInternal) {
       startInternalRecording();
@@ -96,7 +90,7 @@ const statusText = isInternal
 
   const handleStop = () => {
     if (isInternal) {
-      console.log("STOP-knapp tryckt!");
+      console.log("STOP anropad");
       stopInternal();
     } else {
       btVM.setRecordingState(RecordingState.STOPPED);
@@ -105,9 +99,10 @@ const statusText = isInternal
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* ScrollView slutar innan knapparna */}
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.header}>Recording ({isInternal ? "Internal" : "Bluetooth"})</Text>
+        <Text style={styles.header}>
+          Recording ({isInternal ? "Internal" : "Bluetooth"})
+        </Text>
         <Text style={styles.status}>Status: {statusText}</Text>
 
         <AccelCard latest={displayData} />
@@ -115,16 +110,28 @@ const statusText = isInternal
 
         {hasAngleData && (
           <View style={styles.graphSection}>
-             {/* Graferna här */}
-             <PlainLineGraph data={algo1Series} title="EWMA" isRecording={isRecording} />
-             <PlainLineGraph data={algo2Series} title="Complementary" isRecording={isRecording} />
+            <View style={styles.graphContainer}>
+              <PlainLineGraph
+                data={algo1Series}
+                title="EWMA Filter"
+                isRecording={isInternal ? isRecording : btState.recordingState === RecordingState.RECORDING}
+              />
+            </View>
+
+            <View style={styles.graphContainer}>
+              <PlainLineGraph
+                data={algo2Series}
+                title="Complementary Filter"
+                isRecording={isInternal ? isRecording : btState.recordingState === RecordingState.RECORDING}
+              />
+            </View>
           </View>
         )}
-        {/* Lägg till ett tomt utrymme så grafen inte täcks av fasta knappar */}
-        <View style={{ height: 100 }} />
+        {/* Extra space för att inte dölja info bakom knapparna */}
+        <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* FIXED BUTTONS - Flyttade utanför ScrollView för responsivitet */}
+      {/* Knappar fastmonterade i botten */}
       <View style={styles.fixedButtonContainer}>
         <View style={styles.buttonRow}>
           <Button title="Start" onPress={handleStart} color="#007AFF" />
@@ -138,7 +145,7 @@ const statusText = isInternal
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F2F2F7" },
   container: { paddingTop: 24, paddingHorizontal: 20 },
-  header: { fontSize: 24, fontWeight: "bold", marginBottom: 8 },
+  header: { fontSize: 24, fontWeight: "bold", marginBottom: 8, color: "#1C1C1E" },
   status: { marginBottom: 16, color: "#636366" },
   graphSection: { marginTop: 16 },
   graphContainer: { marginVertical: 8 },
@@ -155,6 +162,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
     borderTopWidth: 1,
     borderTopColor: '#CCC',
-    paddingBottom: 20, // För iPhone "home bar"
+    paddingBottom: 30, 
   }
 });
