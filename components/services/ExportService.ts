@@ -1,6 +1,4 @@
-
-// ../ExportService.ts
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from 'expo-file-system';
 import * as Sharing from "expo-sharing";
 import { Alert } from "react-native";
 
@@ -10,45 +8,38 @@ export class ExportService {
     const headers = Object.keys(data[0]);
     const headerString = headers.join(",");
     const rows = data.map((row) => {
-      return headers.map((h) => `"${String(row[h] ?? "").replace(/"/g, '""')}"`).join(",");
+      return headers
+        .map((h) => `"${String(row[h] ?? "").replace(/"/g, '""')}"`)
+        .join(",");
     });
     return [headerString, ...rows].join("\n");
   }
 
   static async saveAndShare(csvData: string, filename: string): Promise<void> {
     try {
-      // 1. Hitta en fungerande mapp (iOS föredrar cache för delning)
-      const fs = FileSystem as any;
-      const directory = fs.cacheDirectory || fs.documentDirectory;
-
+      // 1. Tvinga TypeScript att acceptera de dolda egenskaperna
+      const fs = FileSystem as any; 
+      
+      const directory = fs.documentDirectory || fs.cacheDirectory;
+      
       if (!directory) {
         throw new Error("Kunde inte hitta lagringsplats på enheten.");
       }
 
-      // 2. Skapa en säker filväg med file:// prefix (Krävs ofta av iOS Sharing)
-      const tempPath = `${directory}${filename}`;
-      const fileUri = tempPath.startsWith("file://") ? tempPath : `file://${tempPath}`;
+      const fileUri = `${directory}${filename}`;
 
-      // 3. Skriv filen
+      // 2. Använd "utf8" som rå sträng istället för att leta efter EncodingType
+      // Detta är säkrare när bibliotekets definitioner bråkar
       await FileSystem.writeAsStringAsync(fileUri, csvData, {
-        encoding: "utf8",
+        encoding: "utf8", 
       });
 
-      // 4. Dubbelkolla att filen finns innan vi delar (för att undvika Access Error)
-      const fileInfo = await FileSystem.getInfoAsync(fileUri);
-      if (!fileInfo.exists) {
-        throw new Error("Filen kunde inte skapas.");
-      }
-
-      // 5. Dela med explicit MIME-typ
+      // 3. Dela filen
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri, {
           mimeType: 'text/csv',
-          dialogTitle: 'Spara din inspelning',
-          UTI: 'public.comma-separated-values-text', // iOS-specifik typ för CSV
+          UTI: 'public.comma-separated-values-text',
         });
-      } else {
-        Alert.alert("Sparad", `Filen sparades lokalt: ${fileUri}`);
       }
     } catch (error: any) {
       console.error("Export Error:", error);
