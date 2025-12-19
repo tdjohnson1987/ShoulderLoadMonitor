@@ -213,8 +213,11 @@ export class BluetoothScanViewModel {
       });
   }
   
-  public stopRecording() {
+  public async stopRecording() {
+    // 1. Stoppa hårdvaruströmmen
     this.service.stopStreaming();
+    
+    // 2. Uppdatera bara status till STOPPED utan att spara
     this.setViewState((prev) => ({
       ...prev,
       recordingState: RecordingState.STOPPED,

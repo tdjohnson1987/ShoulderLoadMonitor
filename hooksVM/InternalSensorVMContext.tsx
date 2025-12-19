@@ -86,9 +86,6 @@ export const InternalSensorProvider: React.FC<{ children: React.ReactNode }> = (
       
       return {
         timestamp: r.timestamp,
-        accX: r.accelerometerX,
-        accY: r.accelerometerY,
-        accZ: r.accelerometerZ,
         ewma_angle: processed?.val1 ?? 0,
         comp_angle: processed?.val2 ?? 0
       };

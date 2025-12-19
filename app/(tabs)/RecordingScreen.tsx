@@ -58,25 +58,30 @@ export default function RecordingScreen() {
   };
 
   const handleStop = () => {
-    if (isInternal) {
-      stopInternal();
-    } else {
-      btVM.setRecordingState(RecordingState.STOPPED);
-    }
+      if (isInternal) {
+        stopInternal();
+      } else {
+        // VIKTIGT: Anropa stopRecording() istället för bara setRecordingState
+        btVM.stopRecording(); 
+      
+      }
   };
 
   const handleExport = async () => {
-  if (internalReadings.length === 0) {
-    Alert.alert("Tom data", "Det finns ingen mätning att spara.");
-    return;
-  }
+    // Välj vilken data som ska sparas baserat på sensortyp
+    const dataToSave = isInternal ? internalReadings : btState.angleHistory;
 
-  // Istället för ExportService.saveAndShare använder vi nu:
-  await StorageService.saveSession(internalReadings);
-  
-  // Tips: Rensa mätningen efter att den sparats så man kan börja om
-  // setInternalReadings([]); 
-};
+    if (dataToSave.length === 0) {
+      Alert.alert("Ingen data", "Det finns ingen mätning att spara.");
+      return;
+    }
+
+    // Här sker själva sparandet till internminnet (AsyncStorage)
+    await StorageService.saveSession(dataToSave);
+    
+    // Valfritt: Rensa efter lyckad export så man inte sparar dubbelt
+    // if (!isInternal) btVM.resetHistory(); 
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
